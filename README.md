@@ -1,4 +1,6 @@
 \# **Connect Four — Adaptive AI**
+
+
 University of Strathclyde
 
 MSc Advanced Computer Science with Software Engineering
@@ -43,7 +45,7 @@ An adaptive AI opponent for Connect Four that uses Minimax algorithm with Alpha-
 
 \# **How to Run**
 
-Terminal 1 — Backend:
+Terminal 1 - Backend:
 
 cd backend
 
@@ -51,7 +53,7 @@ node index.js
 
 
 
-Terminal 2 — AI Engine:
+Terminal 2 - AI Engine:
 
 cd ai-engine
 
@@ -61,7 +63,7 @@ python adaptive\_ai.py
 
 
 
-Terminal 3 — Frontend:
+Terminal 3 - Frontend:
 
 cd frontend
 
