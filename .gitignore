@@ -1,0 +1,5 @@
+node_modules/
+ai-engine/venv/
+frontend/build/
+.env
+*.log
