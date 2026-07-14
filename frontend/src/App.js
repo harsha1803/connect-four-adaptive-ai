@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 const ROWS = 6;
 const COLS = 7;
@@ -21,6 +21,25 @@ function App() {
   const [aiDifficulty, setAiDifficulty] = useState(40);
   const [history, setHistory] = useState([]);
   const [hint, setHint] = useState(null);
+  const [sessionId, setSessionId] = useState(null);
+
+  useEffect(() => {
+    startNewSession();
+  }, []);
+
+  const startNewSession = async () => {
+    try {
+      const res = await fetch('http://localhost:5001/ai/start_session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ai_level: aiLevel })
+      });
+      const data = await res.json();
+      setSessionId(data.session_id);
+    } catch {
+      console.log('Session start failed - AI offline');
+    }
+  };
 
   const checkWinner = (b, piece) => {
     for (let r = 0; r < ROWS; r++)
@@ -64,12 +83,12 @@ function App() {
       setStatus('🎉 You win!');
       setScores(s => ({ ...s, player: s.player + 1 }));
       setGameOver(true);
+      recordResult('win');
       return;
     }
 
     setStatus('AI is thinking...');
 
-    // Update AI style based on player column preference
     const colCounts = Array(COLS).fill(0);
     newBoard.forEach(r => r.forEach((cell, c) => { if (cell === PLAYER) colCounts[c]++; }));
     const maxCol = colCounts.indexOf(Math.max(...colCounts));
@@ -82,7 +101,7 @@ function App() {
       const res = await fetch('http://localhost:5000/api/game/move', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ board: newBoard, player: AI, depth: getDepth() })
+        body: JSON.stringify({ board: newBoard, player: AI, depth: getDepth(), player_column: col })
       });
       const data = await res.json();
       const aiCol = data.column;
@@ -100,11 +119,24 @@ function App() {
         setStatus('AI wins! Better luck next time.');
         setScores(s => ({ ...s, ai: s.ai + 1 }));
         setGameOver(true);
+        recordResult('loss');
       } else {
         setStatus('Your turn!');
       }
     } catch {
       setStatus('Your turn! (AI offline)');
+    }
+  };
+
+  const recordResult = async (result) => {
+    try {
+      await fetch('http://localhost:5001/ai/result', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ result, session_id: sessionId })
+      });
+    } catch {
+      console.log('Result recording failed');
     }
   };
 
@@ -125,6 +157,7 @@ function App() {
     setMoveLog([]);
     setHistory([]);
     setHint(null);
+    startNewSession();
   };
 
   const showHint = () => {
@@ -148,8 +181,6 @@ function App() {
 
   return (
     <div style={{ fontFamily: 'Arial', background: '#1a1a2e', minHeight: '100vh', color: 'white' }}>
-
-      {/* HEADER */}
       <div style={{ background: '#16213e', padding: '12px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '2px solid #e94560' }}>
         <h2 style={{ margin: 0, color: '#e94560' }}>Connect Four</h2>
         <button onClick={resetGame} style={{ padding: '8px 16px', background: '#e94560', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
@@ -158,8 +189,6 @@ function App() {
       </div>
 
       <div style={{ padding: '16px', maxWidth: '900px', margin: '0 auto' }}>
-
-        {/* PLAYER INFO */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <div style={{ background: '#16213e', border: '2px solid #ff6b6b', borderRadius: '10px', padding: '12px 24px', textAlign: 'center', minWidth: '160px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
@@ -186,16 +215,12 @@ function App() {
         </div>
 
         <div style={{ display: 'flex', gap: '16px' }}>
-
-          {/* GAME BOARD */}
           <div style={{ flex: 1 }}>
-            {/* Column numbers */}
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '4px' }}>
               {Array(COLS).fill(0).map((_, c) => (
                 <div key={c} style={{ width: '60px', textAlign: 'center', fontSize: '12px', color: '#aaa', margin: '0 4px' }}>C{c+1}</div>
               ))}
             </div>
-
             <div style={{ display: 'inline-block', background: '#2563eb', padding: '8px', borderRadius: '10px' }}>
               {board.map((row, r) => (
                 <div key={r} style={{ display: 'flex' }}>
@@ -220,10 +245,7 @@ function App() {
             </div>
           </div>
 
-          {/* RIGHT PANEL */}
           <div style={{ width: '220px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
-
-            {/* AI FEEDBACK */}
             <div style={{ background: '#16213e', border: '1px solid #2563eb', borderRadius: '10px', padding: '12px' }}>
               <div style={{ fontWeight: 'bold', color: '#4ecdc4', marginBottom: '8px' }}>AI Adaptive Feedback</div>
               <div style={{ fontSize: '13px', marginBottom: '6px' }}>
@@ -240,7 +262,6 @@ function App() {
               <div style={{ fontSize: '11px', color: '#ffd700' }}>⚡ AI adapting to counter your Col 3</div>
             </div>
 
-            {/* GAME CONTROLS */}
             <div style={{ background: '#16213e', border: '1px solid #333', borderRadius: '10px', padding: '12px' }}>
               <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Game Controls</div>
               <div style={{ display: 'flex', gap: '6px', marginBottom: '10px' }}>
@@ -256,7 +277,6 @@ function App() {
               </div>
             </div>
 
-            {/* MOVE HISTORY */}
             <div style={{ background: '#16213e', border: '1px solid #333', borderRadius: '10px', padding: '12px', flex: 1 }}>
               <div style={{ fontWeight: 'bold', marginBottom: '8px' }}>Move Log</div>
               <div style={{ fontSize: '12px', color: '#aaa', maxHeight: '150px', overflowY: 'auto' }}>
@@ -267,18 +287,15 @@ function App() {
                 <div style={{ color: '#555', marginTop: '4px', fontSize: '11px' }}>Scroll log – shows last 10 moves</div>
               </div>
             </div>
-
           </div>
         </div>
 
-        {/* LEGEND */}
         <div style={{ marginTop: '12px', display: 'flex', gap: '16px', fontSize: '13px', color: '#aaa' }}>
           <span>Legend:</span>
           <span><span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', background: '#ff6b6b', verticalAlign: 'middle', marginRight: '4px' }}/>Player 1</span>
           <span><span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', background: '#888', verticalAlign: 'middle', marginRight: '4px' }}/>AI Player 2</span>
           <span><span style={{ display: 'inline-block', width: '14px', height: '14px', borderRadius: '50%', background: '#ffd700', verticalAlign: 'middle', marginRight: '4px' }}/>Hint / Winner</span>
         </div>
-
       </div>
     </div>
   );
