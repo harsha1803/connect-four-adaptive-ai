@@ -5,10 +5,11 @@ University of Strathclyde
 
 MSc Advanced Computer Science with Software Engineering
 
-Student: Harshavardhan Mulavagili 
+Student: Harshavardhan Mulavagili
 Reg No: 202665279
 
-Supervisor: Mr. Andrew Fagan 
+Supervisor: Mr. Andrew Fagan
+
 
 
 
